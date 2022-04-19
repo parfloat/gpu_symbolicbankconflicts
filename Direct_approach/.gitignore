@@ -1,0 +1,15 @@
+*.o
+klee-out-*
+*.bc
+*.ll
+/Gklee/Gklee/STP
+/build
+/include
+/lib
+/llvm
+/share
+.cproject
+.project
+.settings
+bin/
+Gklee/STP

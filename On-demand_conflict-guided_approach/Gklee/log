@@ -1,0 +1,169 @@
+diff --git a/Gklee/lib/Core/LineExplorer.cpp b/Gklee/lib/Core/LineExplorer.cpp
+index 5a958f4..f38a7a8 100644
+--- a/Gklee/lib/Core/LineExplorer.cpp
++++ b/Gklee/lib/Core/LineExplorer.cpp
+@@ -74,83 +74,90 @@ void LineExplorer::addEncoding(ExecutionState& _state, std::vector<const Array*>
+ * If you do not want the state to be messed up, pass a copy.
+ */
+ bool LineExplorer::makeCliquePossibleLocally(const Clique& clique){
+-	#ifdef DEBUG_LINE_EXPLORER
+-	std::cout << "making {";
+-	std::copy(clique.begin(), clique.end(), std::ostream_iterator<unsigned>(std::cout, " "));
+-	std::cout << "} possible at line " << lineID << std::endl;
+-	#endif
+-  if(clique.size() > maxNumConflicts || clique.empty()){
++#ifdef DEBUG_LINE_EXPLORER
++  std::cout << __FILE__ << ": " << __LINE__ << std::endl;
++  std::cout << "making " << clique << " possible at line " << lineID << std::endl;
++#endif
++  if(clique.size() > 1 + maxNumConflicts || clique.empty()){
+     return false;
+   }
+-	std::map<Clique,CliqueSet>& mappedSoFar=storage[clique.size()];
+-	if(storage[clique.size()].find(clique) != storage[clique.size()].end()){//already cached
+-		#ifdef DEBUG_LINE_EXPLORER
+-		std::cout << "clique cached at line " << lineID << std::endl;
+-		#endif
+-		return 	!isEmptySingleton(storage[clique.size()].find(clique)->second);
+-	}
+-	ExecutionState cState(state); //work on a copy to not mess the state
+-	if(!enforce(cState,clique)){ //preliminary check: clique impossible
+-		#ifdef DEBUG_LINE_EXPLORER
+-		std::cout << "could not enforce clique, failure at line " << lineID << std::endl;
+-		#endif
++  //	std::map<Clique,CliqueSet>& mappedSoFar=storage[clique.size()];
++  if(storage[clique.size()].find(clique) != storage[clique.size()].end()){//already cached
++#ifdef DEBUG_LINE_EXPLORER
++    std::cout << __FILE__ << ": " << __LINE__ << std::endl;
++    std::cout << "clique cached at line " << lineID << std::endl;
++#endif
++    return !isEmptySingleton(storage[clique.size()].find(clique)->second);
++  }
++  ExecutionState cState(state); //work on a copy to not mess the state
++  if(!enforce(cState,clique)){ //preliminary check: clique impossible
++#ifdef DEBUG_LINE_EXPLORER
++    std::cout << __FILE__ << ": " << __LINE__ << std::endl;
++    std::cout << "could not enforce clique, failure at line " << lineID << std::endl;
++#endif
+     // encode impossibility: need to forbidd an empty set
+-		storage[clique.size()][clique] = getEmptySingleton();
+-		return false;
+-	} // Now all solutions will have the clique.
+-	Clique spoiler;
+-	CliqueSet cliques2bForbidden;
+-	do{ //while there are spoilers to forbid
+-		#ifdef DEBUG_LINE_EXPLORER
+-		std::cout << "quering solver at line " << lineID << std::endl;
+-		#endif
+-		// get a solution with enforced clique and forbidden cliques2bForbidden.
+-		std::vector< std::vector<unsigned char> > values;
+-		bool success = solver->getInitialValues(cState, objects, values);
+-		solver->setTimeout(0);
+-		if(!success){
+-			#ifdef DEBUG_LINE_EXPLORER
+-			std::cout << "no solutions, failure at line " << lineID << std::endl;
+-			#endif
+-			// Encode impossible clique and return.
+-			storage[clique.size()][clique]=getEmptySingleton();
+-			return false;
+-		}
+-		#ifdef DEBUG_LINE_EXPLORER
+-		std::cout << "found solution, spoilers? at line " << lineID << std::endl;
+-		#endif
+-		//see if larger cliques are possible
+-		spoiler = getSpoiler(clique.size()+1, objects, values);
+-		if(spoiler.empty()){
+-			// solution has no larger cliques.
+-			#ifdef DEBUG_LINE_EXPLORER
+-			std::cout << "no spoiler, success at line " << lineID << std::endl;
+-			// for (int symIndex = objects.size()-1; symIndex >= 0 ; --symIndex) {
+-			// 	std::cout << objects[symIndex]->name << " = ";
+-			// 	std::cout << "(size " << objects[symIndex]->size << ", little-endian) ";
+-			// 	for (unsigned valueIndex = 0; valueIndex < values[symIndex].size(); ++valueIndex)
+-			// 	std::cout << (int)values[symIndex][valueIndex] << " ";
+-			// 	std::cout << std::endl;
+-			// }
+-			#endif
+-			// return fobidden cliques so far.
+-			storage[clique.size()][clique] = cliques2bForbidden;
+-			return true;
+-		}
+-		#ifdef DEBUG_LINE_EXPLORER
+-		std::cout << "found spoiler {" << std::endl;
+-		std::copy(spoiler.begin(), spoiler.end(), std::ostream_iterator<unsigned>(std::cout, " "));
+-		std::cout << "} at line " << lineID << std::endl;
+-		#endif
+-		cliques2bForbidden.insert(spoiler);
+-	}while(forbidd(cState, spoiler));
+-	#ifdef DEBUG_LINE_EXPLORER
+-	std::cout << "could not forbidd spolier. failure at line " << lineID << std::endl;
+-	#endif
+-	// impossible to forbid the spoiler.
+-	// Encode impossibility and return.
+-	storage[clique.size()][clique]=getEmptySingleton();
+-	return false;
++    storage[clique.size()][clique] = getEmptySingleton();
++    return false;
++  } // Now all solutions will have the clique.
++  Clique spoiler;
++  CliqueSet cliques2bForbidden;
++  do{ //while there are spoilers to forbid
++#ifdef DEBUG_LINE_EXPLORER
++    std::cout << __FILE__ << ": " << __LINE__ << std::endl;
++    std::cout << "quering solver at line " << lineID << std::endl;
++#endif
++    // get a solution with enforced clique and forbidden cliques2bForbidden.
++    std::vector< std::vector<unsigned char> > values;
++    bool success = solver->getInitialValues(cState, objects, values);
++    solver->setTimeout(0);
++    if(!success){
++#ifdef DEBUG_LINE_EXPLORER
++      std::cout << __FILE__ << ": " << __LINE__ << std::endl;
++      std::cout << "no solutions, failure at line " << lineID << std::endl;
++#endif
++      // Encode impossible clique and return.
++      storage[clique.size()][clique]=getEmptySingleton();
++      return false;
++    }
++#ifdef DEBUG_LINE_EXPLORER
++    std::cout << __FILE__ << ": " << __LINE__ << std::endl;
++    std::cout << "found solution, spoilers? at line " << lineID << std::endl;
++#endif
++    //see if larger cliques are possible
++    spoiler = getSpoiler(clique.size()+1, objects, values);
++    if(spoiler.empty()){
++      // solution has no larger cliques.
++#ifdef DEBUG_LINE_EXPLORER
++      std::cout << __FILE__ << ": " <<  __LINE__ << std::endl;
++      std::cout << "no spoiler, success at line " << lineID << std::endl;
++      // for (int symIndex = objects.size()-1; symIndex >= 0 ; --symIndex) {
++      // 	std::cout << objects[symIndex]->name << " = ";
++      // 	std::cout << "(size " << objects[symIndex]->size << ", little-endian) ";
++      // 	for (unsigned valueIndex = 0; valueIndex < values[symIndex].size(); ++valueIndex)
++      // 	std::cout << (int)values[symIndex][valueIndex] << " ";
++      // 	std::cout << std::endl;
++      // }
++#endif
++      // return fobidden cliques so far.
++      storage[clique.size()][clique] = cliques2bForbidden;
++      return true;
++    }
++#ifdef DEBUG_LINE_EXPLORER
++    std::cout << __FILE__ << ": " << __LINE__ << std::endl;
++    std::cout << "found spoiler {" << std::endl;
++    std::copy(spoiler.begin(), spoiler.end(), std::ostream_iterator<unsigned>(std::cout, " "));
++    std::cout << "} at line " << lineID << std::endl;
++#endif
++    cliques2bForbidden.insert(spoiler);
++  }while(forbidd(cState, spoiler));
++#ifdef DEBUG_LINE_EXPLORER
++  std::cout << __FILE__ << ": " << __LINE__ << std::endl;
++  std::cout << "could not forbidd spolier. failure at line " << lineID << std::endl;
++#endif
++  // impossible to forbid the spoiler.
++  // Encode impossibility and return.
++  storage[clique.size()][clique]=getEmptySingleton();
++  return false;
+ }
+ 
+ 
