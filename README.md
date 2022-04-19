@@ -1,4 +1,4 @@
-**Symbolic identification of shared memory bank conflicts**
+### Symbolic identification of shared memory bank conflicts ###
 
 This is the source code for the tool presented in the paper:
 
@@ -20,7 +20,7 @@ page in order to set-up both of the versions (i.e., "Direct_approach" and "On-de
 
 ---
 
-### Contribution guidelines ###
+### Testing guidelines ###
 
 The applications tested are in the folder "Programs".
 Since the ""On-demand_conflict-guided_approach" is the faster of the two proposed approaches, the applications are set up for that version.
