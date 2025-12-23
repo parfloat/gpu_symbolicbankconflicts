@@ -172,15 +172,15 @@
 
 #endif /* __CUDACC__ || __CUDABE__ || __GNUC__  || _WIN64 */
 
-//#define __host__ \
+#define __host__ \
         __location__(host)
-//#define __device__ \
+#define __device__ \
         __location__(device)
-//#define __global__ \
+#define __global__ \
         __location__(global)
-//#define __shared__ \
+#define __shared__ \
         __location__(shared)
-//#define __constant__ \
+#define __constant__ \
         __location__(constant)
 
 #if defined(__CUDABE__) || !defined(__CUDACC__)

@@ -130,6 +130,7 @@ HandlerInfo handlerInfo[] = {
 
   // concurrent
   add("__set_CUDAConfig", handleSetCUDAConfiguration, false),
+  add("cudaConfigureCall", handleCudaConfigureCall, true),
   add("__set_device", handleSetDevice, false),
   add("__clear_device", handleClearDevice, false),
   add("__set_host", handleSetHost, false),
@@ -862,6 +863,15 @@ void SpecialFunctionHandler::handleSetCUDAConfiguration(ExecutionState &state,
   // clear address sets
   state.addressSpace.clearAccessSet();
   state.addressSpace.clearInstAccessSet(true);
+}
+
+void SpecialFunctionHandler::handleCudaConfigureCall(ExecutionState &state,
+                                                     KInstruction *target,
+                                                     std::vector<klee::ref<Expr> > &arguments) {
+  // Call the main configuration handler
+  handleSetCUDAConfiguration(state, target, arguments);
+  // Return cudaSuccess (0) - cudaError_t is an int32
+  executor.bindLocal(target, state, ConstantExpr::create(0, Expr::Int32));
 }
 
 void SpecialFunctionHandler::handleSetDevice(ExecutionState &state, 

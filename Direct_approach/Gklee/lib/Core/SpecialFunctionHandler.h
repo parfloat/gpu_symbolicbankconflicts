@@ -104,6 +104,7 @@ namespace klee {
     HANDLER(handleWarningOnce);
 
     HANDLER(handleSetCUDAConfiguration);
+    HANDLER(handleCudaConfigureCall);
     HANDLER(handleSetDevice);
     HANDLER(handleClearDevice);
     HANDLER(handleSetHost);

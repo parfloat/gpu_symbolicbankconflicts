@@ -63,11 +63,11 @@
 extern "C" {
 #endif /* __cplusplus */
 
-//uint3 __device_builtin__ __STORAGE__ threadIdx;
-//uint3 __device_builtin__ __STORAGE__ blockIdx;
-//dim3 __device_builtin__ __STORAGE__ blockDim;
-//dim3 __device_builtin__ __STORAGE__ gridDim;
-int __device_builtin__ __STORAGE__ warpSize;
+uint3 __STORAGE__ threadIdx;
+uint3 __STORAGE__ blockIdx;
+dim3 __STORAGE__ blockDim;
+dim3 __STORAGE__ gridDim;
+int __STORAGE__ warpSize;
 
 #undef __STORAGE__
 
