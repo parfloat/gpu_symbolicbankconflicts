@@ -83,6 +83,9 @@
 #include "BankConflictsSideChannel.h"
 //adrianh end
 
+// Verbose tracing support
+#include "VerboseTracer.h"
+
 #include <cassert>
 #include <algorithm>
 #include <iostream>
@@ -304,6 +307,11 @@ RacePrune("race-prune",
 		cl::desc("Prune the paths not leading to races"),
 		cl::init(false));
 
+cl::opt<std::string>
+VerboseTrace("verbose-trace",
+		cl::desc("Enable verbose tracing to specified file"),
+		cl::init(""));
+
 extern cl::opt<bool> ReuseCov;
 extern cl::opt<bool> IgnoreConcurBug;
 extern cl::opt<bool> CheckBC;
@@ -320,7 +328,8 @@ static unsigned theMMapSize = 0;
 
 namespace klee {
 RNG theRNG;
-}  
+VerboseTracer verboseTracer;  // Global verbose tracer instance
+}
 
 //#define CLOCKS_PER_SEC ((clock_t)1000) 
 
@@ -1978,6 +1987,14 @@ void Executor::executeInstruction(ExecutionState &state, KInstruction *ki) {
 		}
 	}
 
+	// Verbose tracer: log instruction execution in GPU mode
+	if (verboseTracer.isEnabled() && state.tinfo.is_GPU_mode) {
+		std::string instStr;
+		llvm::raw_string_ostream rso(instStr);
+		rso << *i;
+		verboseTracer.traceInstruction(rso.str(), state.tinfo.get_cur_tid());
+	}
+
 	if (ExecutorUtil::isForkInstruction(i)) isFork = true;
 
 	if (!UseSymbolicConfig)
@@ -2641,6 +2658,16 @@ void Executor::executeInstruction(ExecutionState &state, KInstruction *ki) {
 		updateCType(state, kgepi->inst->getOperand(0),
 				base, state.tinfo.is_GPU_mode);
 
+		// Verbose tracing for Load
+		if (verboseTracer.isEnabled() && state.tinfo.is_GPU_mode) {
+			std::string instStr;
+			llvm::raw_string_ostream instRso(instStr);
+			instRso << *i;
+			std::ostringstream addrOss;
+			addrOss << *base;
+			verboseTracer.traceLoad(instRso.str(), state.tinfo.get_cur_tid(), addrOss.str(), ctypeToString(base->ctype));
+		}
+
 		if (UseSymbolicConfig) {
 			if (accumTaintSet.find(i) != accumTaintSet.end()) {
 				Gklee::Logging::outItem< std::string >( "true" , "in taint set" );
@@ -2664,6 +2691,17 @@ void Executor::executeInstruction(ExecutionState &state, KInstruction *ki) {
 				base, state.tinfo.is_GPU_mode);
 
 		Gklee::Logging::outItem( base , "store addr" );
+
+		// Verbose tracing for Store
+		if (verboseTracer.isEnabled() && state.tinfo.is_GPU_mode) {
+			std::string instStr;
+			llvm::raw_string_ostream instRso(instStr);
+			instRso << *i;
+			std::ostringstream addrOss, valOss;
+			addrOss << *base;
+			valOss << *value;
+			verboseTracer.traceStore(instRso.str(), state.tinfo.get_cur_tid(), addrOss.str(), valOss.str(), ctypeToString(base->ctype));
+		}
 
 		executeMemoryOperation(state, true, base, value, ki, seqNum);
 		//    if(GPUConfig::verbose > 0){
@@ -4007,6 +4045,11 @@ void Executor::executeInstruction(ExecutionState &state, KInstruction *ki) {
 		if (CheckBarrierRedundant)
 			UseSymbolicConfig = true;
 
+		// Verbose tracing: start initial barrier interval
+		if (verboseTracer.isEnabled()) {
+			verboseTracer.startBarrierInterval(0);
+		}
+
 		state.incKernelNum();
 		state.BINum = 1;
 		Gklee::Logging::outItem( std::string( "BI#:1, Kern#:" ) +
@@ -4135,6 +4178,15 @@ void Executor::executeInstruction(ExecutionState &state, KInstruction *ki) {
 		// Delay init till now so that ticks don't accrue during
 		// optimization and such.
 		initTimers();
+
+		// Initialize verbose tracer if --verbose option was specified
+		if (!VerboseTrace.empty()) {
+			if (verboseTracer.init(VerboseTrace)) {
+				std::cout << "[GKLEE]: Verbose tracing enabled, output to: " << VerboseTrace << std::endl;
+			} else {
+				std::cerr << "[GKLEE]: Warning: Failed to open verbose trace file: " << VerboseTrace << std::endl;
+			}
+		}
 
 		if (ReducePath.size() > 0)
 			PR_info.init(ReducePath, PRUseDep);

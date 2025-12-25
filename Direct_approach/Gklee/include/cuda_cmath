@@ -1,7 +1,11 @@
 // Minimal cmath header for GKLEE compatibility
+// This header provides the std:: namespace functions for CUDA code
 #ifndef _GKLEE_CMATH_
 #define _GKLEE_CMATH_
 
+// For non-CUDA compilation, we need the full C++ cmath header
+// We use the real path to the system cmath to avoid recursive includes
+#include <stdlib.h>
 #include <math.h>
 
 namespace std {
@@ -48,9 +52,13 @@ namespace std {
     using ::fabsf;
     using ::fmodf;
 
+    // Provide abs overloads for floating point types
     inline float abs(float x) { return fabsf(x); }
     inline double abs(double x) { return fabs(x); }
     inline long double abs(long double x) { return fabsl(x); }
+    inline int abs(int x) { return ::abs(x); }
+    inline long abs(long x) { return ::labs(x); }
+    inline long long abs(long long x) { return ::llabs(x); }
 }
 
 #endif // _GKLEE_CMATH_

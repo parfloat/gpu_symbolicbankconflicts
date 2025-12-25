@@ -27,6 +27,8 @@
 #include "BankConflictsSideChannel.h"
 //adrianh end
 
+#include "VerboseTracer.h"
+
 using namespace llvm;
 using namespace klee;
 using namespace Gklee;
@@ -105,8 +107,14 @@ void Executor::encounterBarrier(ExecutionState &state,
 
   // increase the barrier count
   unsigned tid = state.tinfo.get_cur_tid();
-  Logging::outItem( std::to_string( state.tinfo.get_cur_tid() ), 
+  Logging::outItem( std::to_string( state.tinfo.get_cur_tid() ),
 		    "curTID" );
+
+  // Verbose tracing: thread reached barrier
+  if (verboseTracer.isEnabled()) {
+    unsigned barrierCount = state.tinfo.numBars[tid].first.size() + 1;
+    verboseTracer.traceBarrierReached(tid, barrierCount);
+  }
   std::vector<BarrierInfo> &barrierVec = state.tinfo.numBars[tid].first;
   barrierVec.push_back(BarrierInfo(target->inst, target->info->file, target->info->line));
   state.tinfo.numBars[tid].second = is_end_GPU_barrier;
@@ -120,6 +128,12 @@ void Executor::encounterBarrier(ExecutionState &state,
   Gklee::Logging::outItem< std::string >( std::to_string( allThreadsBarrier ), "all threads at barrier" );
   if (allThreadsBarrier) {
     unsigned BINum = state.tinfo.numBars[tid].first.size();
+
+    // Verbose tracing: all threads at barrier
+    if (verboseTracer.isEnabled()) {
+      verboseTracer.traceAllThreadsAtBarrier(GPUConfig::num_threads, BINum);
+      verboseTracer.flush();
+    }
 
     // if all threads in the last warp encounter __syncthreads(),
     // then start checking races, bc, wd, mc... 
@@ -205,28 +219,52 @@ void Executor::encounterBarrier(ExecutionState &state,
       }
     }
 
+    // Verbose tracing: start shared memory race check
+    if (verboseTracer.isEnabled()) {
+      verboseTracer.traceRaceCheckStart("SHARED MEMORY");
+    }
+
     if (!UseSymbolicConfig) {
-      // check races on shared memory 
+      // check races on shared memory
       klee::ref<Expr> shareRaceCond = klee::ConstantExpr::create(1, Expr::Bool);
-      if (state.addressSpace.hasRaceInShare(*this, state, state.cTidSets, shareRaceCond)) {
+      bool sharedRaceFound = state.addressSpace.hasRaceInShare(*this, state, state.cTidSets, shareRaceCond);
+      if (verboseTracer.isEnabled()) {
+        verboseTracer.traceRaceCheckComplete("SHARED", sharedRaceFound, 0);
+      }
+      if (sharedRaceFound) {
         terminateStateOnExecError(state, "execution halts on encounering a (shared) race");
       }
     } else {
       bool hasRace = state.addressSpace.hasSymRaceInShare(*this, state);
+      if (verboseTracer.isEnabled()) {
+        verboseTracer.traceRaceCheckComplete("SHARED (symbolic)", hasRace, 0);
+      }
       if (hasRace) {
         symRace = true;
         terminateStateOnExecError(state, "execution halts on encounering a (shared) race");
       }
     }
 
+    // Verbose tracing: start global memory race check
+    if (verboseTracer.isEnabled()) {
+      verboseTracer.traceRaceCheckStart("GLOBAL MEMORY");
+    }
+
     if (!UseSymbolicConfig) {
       // check races on the device and CPU memory
       klee::ref<Expr> globalRaceCond = klee::ConstantExpr::create(1, Expr::Bool);
-      if (state.addressSpace.hasRaceInGlobal(*this, state, state.cTidSets, globalRaceCond, BINum, is_end_GPU_barrier)) {
+      bool globalRaceFound = state.addressSpace.hasRaceInGlobal(*this, state, state.cTidSets, globalRaceCond, BINum, is_end_GPU_barrier);
+      if (verboseTracer.isEnabled()) {
+        verboseTracer.traceRaceCheckComplete("GLOBAL", globalRaceFound, 0);
+      }
+      if (globalRaceFound) {
         terminateStateOnExecError(state, "execution halts on encounering a (global) race");
       }
     } else {
       bool hasRace = state.addressSpace.hasSymRaceInGlobal(*this, state, is_end_GPU_barrier);
+      if (verboseTracer.isEnabled()) {
+        verboseTracer.traceRaceCheckComplete("GLOBAL (symbolic)", hasRace, 0);
+      }
       if (hasRace) {
         symRace = true;
         terminateStateOnExecError(state, "execution halts on encounering a (global) race");
@@ -249,6 +287,11 @@ void Executor::encounterBarrier(ExecutionState &state,
     }
     state.addressSpace.clearAccessSet();
     state.addressSpace.clearInstAccessSet(true);
+
+    // Verbose tracing: start next barrier interval
+    if (verboseTracer.isEnabled()) {
+      verboseTracer.startBarrierInterval(BINum + 1);
+    }
   }
 
   if (!UseSymbolicConfig) {
