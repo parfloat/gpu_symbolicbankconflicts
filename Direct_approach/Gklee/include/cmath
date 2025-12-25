@@ -1,0 +1,59 @@
+// Minimal cmath header for GKLEE/CUDA compatibility
+#ifndef _GKLEE_CMATH_
+#define _GKLEE_CMATH_
+
+#include <stdlib.h>
+#include <math.h>
+
+namespace std {
+    using ::sin;
+    using ::cos;
+    using ::tan;
+    using ::asin;
+    using ::acos;
+    using ::atan;
+    using ::atan2;
+    using ::sinh;
+    using ::cosh;
+    using ::tanh;
+    using ::exp;
+    using ::log;
+    using ::log10;
+    using ::pow;
+    using ::sqrt;
+    using ::ceil;
+    using ::floor;
+    using ::fabs;
+    using ::fmod;
+    using ::frexp;
+    using ::ldexp;
+    using ::modf;
+
+    using ::sinf;
+    using ::cosf;
+    using ::tanf;
+    using ::asinf;
+    using ::acosf;
+    using ::atanf;
+    using ::atan2f;
+    using ::sinhf;
+    using ::coshf;
+    using ::tanhf;
+    using ::expf;
+    using ::logf;
+    using ::log10f;
+    using ::powf;
+    using ::sqrtf;
+    using ::ceilf;
+    using ::floorf;
+    using ::fabsf;
+    using ::fmodf;
+
+    // abs from C library - these are C functions, not C++ overloads
+    using ::abs;
+    using ::labs;
+    using ::llabs;
+    using ::fabsl;
+}
+
+#endif // _GKLEE_CMATH_
